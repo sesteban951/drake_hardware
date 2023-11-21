@@ -7,23 +7,31 @@ import numpy as np
 
 class OptiTrack:
     """
-    Class used to subscirbe to OptiTrack data
+    Class used to subscirbe to OptiTrack data and interface with Drake
     """
     def __init__(self):
 
         # stuff to send over drake system
-        self.quat = np.zeros(4)
         self.pos  = np.zeros(3)
+        self.quat = np.zeros(4)
 
-        # ROS stuff
-        rospy.init_node('optitrack_listener', anonymous=True)
-        self.sub = rospy.Subscriber("/vrpn_client_node/hopper/pose", PoseStamped, self.callback)
-        self.rate = rospy.Rate(30) 
-        rospy.sleep(1)
+        # ROS parameters
+        node_name = 'optitrack_listener'
+        topic_name = '/vrpn_client_node/hopper/pose'
+        hz = 30
 
-    # send the pose and twist over drake system
+        # setup ROS node
+        rospy.init_node(node_name, anonymous=True)  # init ROS node
+        self.sub = rospy.Subscriber(topic_name,     # subscibe to vrpn client node
+                                    PoseStamped, 
+                                    self.callback)
+        self.rate = rospy.Rate(hz)                  # set loop rate to 30 Hz    
+        rospy.sleep(1)                              # wait for subscriber to connect
+
+    # get pose and twist data from OptiTrack
     def callback(self,data):
-        # log the pose and twist data
+
+        # set the local position and orientation variables
         pos_world = data.pose.position
         quat_world = data.pose.orientation
 
@@ -33,12 +41,10 @@ class OptiTrack:
     # main loop to execute
     def get_pose(self):
 
-        print("Starting OptiTrack Listener:")
         while not rospy.is_shutdown():
             print("Position: ", self.pos)
             print("Orientation: ", self.quat)
- 
-            print("\n")
+
             self.rate.sleep()
 
 if __name__ == '__main__':
