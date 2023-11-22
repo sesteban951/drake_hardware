@@ -17,7 +17,7 @@ class OptiTrack:
 
         # ROS parameters
         node_name = 'optitrack_listener'
-        topic_name = '/vrpn_client_node/hopper/pose'
+        topic_name = '/vrpn_client_node/adam/pose'
         hz = 30
 
         # setup ROS node

@@ -34,15 +34,16 @@ class OptiTrack(LeafSystem):
                                      prerequisites_of_calc={self._cache.ticket()})
 
         # values for output of this system
-        self.pos  = np.zeros(3)
+        self.pos  = np.zeros(3) 
         self.quat = np.zeros(4)
+
+        self.wait_for_data = False # wait to get data from OptiTrack
+        self.fresh_data = False    # flag for fresh data
 
         # ROS parameters
         node_name = 'optitrack_listener'
-        topic_name = '/vrpn_client_node/hopper/pose'
-        
-        rate_limit = True
-        hz = 200
+        topic_name = '/vrpn_client_node/adam/pose'
+        hz = 300
 
         # setup ROS node
         rospy.init_node(node_name, anonymous=True)  # init ROS node
@@ -60,27 +61,26 @@ class OptiTrack(LeafSystem):
         quat_world = data.pose.orientation
 
         self.pos = np.array([[pos_world.x], [pos_world.y], [pos_world.z]])
-        self.quat = np.array([[quat_world.x], [quat_world.y], [quat_world.z], [quat_world.w]])
-
-        print("Position: ", self.pos)
-        print("Orientation: ", self.quat)
-
-    # spin this node until interrupt
-    def stream_pose(self):
-
-        print("Streaming OptiTrack data...")
-        while not rospy.is_shutdown():
-            self.rate.sleep()
+        self.quat = np.array([[quat_world.w],[quat_world.x], [quat_world.y], [quat_world.z]])
         
-        print("OptiTrack data stream stopped.")
+        # set fresh data flag to true
+        self.fresh_data = True
 
-    # compute output of of this leaf system
-    def CalcOutput(self):
+    # compute output of this leaf system
+    def CalcOutput(self,context):
+        
+        # wait until you get new data
+        if self.wait_for_data:
+
+            # loop until you get new data
+            while not self.fresh_data:
+                self.rate.sleep()
+            
+            # set fresh data flag to false
+            self.fresh_data = False
+        
+        # return the position and quaternion
         pose_info = {"position": self.pos, 
                      "quaternion": self.quat}
+        
         return pose_info
-
-if __name__ == '__main__':
-    opti = OptiTrack()
-    opti.stream_pose()
-
