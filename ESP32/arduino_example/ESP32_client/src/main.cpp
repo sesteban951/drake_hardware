@@ -25,7 +25,7 @@ PlatfromIO env params:
 // WIFI router information
 const char* ssid = "NETGEAR22";
 const char* password = "perfectfire175";
-const char* pc_inet = "10.1.1.9"; // use "ifconfig" to get wlp inet addr on server from laptop
+const char* pc_inet = "10.1.1.10"; // use "ifconfig" to get wlp inet addr on server from laptop
 
 // SOCKET server information
 #define PORT 8080
@@ -37,8 +37,7 @@ struct sockaddr_in serv_addr;
 char buffer[4] = { 0 };
 
 // TIMING variables
-double t0 = 0.0;
-double tf = 0.0;
+long t1, t2;
 
 ////////////////////////////////////// FUNCTIONS //////////////////////////////////////
 
@@ -136,7 +135,7 @@ void setup(){
   setup_wifi();
   delay(100);
 
-  // display all netwrok info
+  // display all netwrosk info
   show_network_info();
   delay(100);
   
@@ -161,20 +160,21 @@ void setup(){
     delay(1000);
   }
   
-  t0 = millis();
 }
 
 ////////////////////////////////////// LOOP //////////////////////////////////////
 
 void loop(){
-    // print current time
-    tf = (millis() - t0)/1000.0;
-    Serial.println(tf);
     
     // read message from server
-    ssize_t bytes_read = read(client_fd, buffer, 5);
+    t1 = micros();
+    ssize_t bytes_read = read(client_fd, buffer, 100);
     buffer[bytes_read] = '\0'; // null terminate the string
     String message = String(buffer);
+    t2 = micros();
+
+    Serial.print(t2-t1);
+    Serial.print("us, ");
     Serial.println(message); 
 
     // if (client.available()) {
