@@ -5,6 +5,19 @@ PlatfromIO env params:
   platform = espressif32
   board = featheresp32
   framework = arduino
+  monitor_speed = 115200
+
+Notes:
+  ssid: WIFI router name
+  password: WIFI router password
+  pc_inet: IP address of the server (laptop) to connect to
+           use "ifconfig" to get wlp inet addr on server from laptop (must do this)
+
+  Zero, ensure that byte sizes are agreed upon from server and client (i.e, adjust container sizes below)
+  First, run accopanying py_server.py script on server (laptop) to receive data from ESP32
+  Second, run this script on ESP32 to send and receive from server (laptop)
+
+By Sergio Esteban (sesteban@caltech.edu)
 */ 
 
 ////////////////////////////////////// LIBRARIES //////////////////////////////////////
@@ -22,22 +35,37 @@ PlatfromIO env params:
 
 ////////////////////////////////////// VARIABLES //////////////////////////////////////
 
-// WIFI router information
-const char* ssid = "NETGEAR22";
-const char* password = "perfectfire175";
-const char* pc_inet = "10.1.1.10"; // use "ifconfig" to get wlp inet addr on server from laptop
+// WIFI router information, must be modified when you change router or laptop
+// const char* ssid = "NETGEAR22";
+// const char* password = "perfectfire175";
+// const char* pc_inet = "10.1.1.10"; // use "ifconfig" to get wlp inet addr on server from laptop
+const char* ssid = "FBI-CIA-NASA-Wifi";
+const char* password = "fancywater082";
+const char* pc_inet = "192.168.1.137"; // use "ifconfig" to get wlp inet addr on server from laptop
 
 // SOCKET server information
 #define PORT 8080
-WiFiClient client;
-
-int client_fd; // socket file descriptor, an integer (like a file handle)
-int status, received_msg;
+int client_fd;   // socket file descriptor, an integer (like a file handle)
+int status;      // for connection error checking
 struct sockaddr_in serv_addr;
-char buffer[4] = { 0 };
+
+// Receiving message containers
+const int send_num_floats = 4;                    // change size as needed, each float is 4 bytes
+char recvBuffer[sizeof(float) * send_num_floats]; // buffer for receviing data
+ssize_t bytes_read;                               // for meausring received packet size
+float recv_num1, recv_num2, recv_num3, recv_num4; // containers for unpacked floats
+
+// Sending message containers
+const int recv_num_floats = 4;                    // change size as needed, each float is 4 bytes
+float dataToSend[recv_num_floats];                // change size as needed
+char sendBuffer[sizeof(float) * recv_num_floats]; // buffer for sending data
+float send_num1, send_num2, send_num3, send_num4; // containers for to pack flaots
 
 // TIMING variables
-long t1, t2;
+double time1, time2;           // to measure time using internal ESP32 clock
+double t_elapsed, t_remaining; // to measure time remaining to achieve desired frequency
+const int hz = 100;             // desired frequency of data transfer
+const float T = 1.0/hz;        // period of data transfer
 
 ////////////////////////////////////// FUNCTIONS //////////////////////////////////////
 
@@ -55,11 +83,11 @@ void setup_wifi(){
     Serial.print(".");
     delay(100);
   }
-
 }
 
 // function to print info once the ESP32 is connected to the Wifi network
 void show_network_info(){
+
   if(WiFi.status() == WL_CONNECTED) {
     Serial.println("\nSuccessfully to the WiFi network");
 
@@ -79,10 +107,10 @@ void show_network_info(){
   }
 }
 
-// setup a client socket to connect to server over Wifi
+// function to setup a client socket to connect to server over Wifi
 int setup_socket(){
   
-  // create client socket with TCP (SOCK_STREAM)
+  // create client socket with TCP (SOCK_STREAM), if you want UDP (SOCK_DGRAM)
 	if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		Serial.print("\n Socket creation error \n");
 		return -1;
@@ -107,17 +135,18 @@ int setup_socket(){
 		Serial.print("Connection to Server Failed!\n");
 		return -1;
 	}
-  Serial.println("Connected to Server Success!");
+  Serial.println("Connected to Server Successfully!");
 
-  // Connect to server
-  // if (!client.connect(pc_inet, PORT)) {
-  //   Serial.println("Connection to server failed");
-  //   return -1;
-  // } else {
-  //   Serial.println("Connected to server");
-  //   return 0;
-  // }
   return 0;
+}
+
+// arbitrary to generate data
+float sine_wave(){
+  double t, f, x;
+  t = millis()/1000.0;
+  f = 1.0;
+  x = 500.0 * sin(2 * M_PI * f*  t);
+  return x;
 }
 
 ////////////////////////////////////// SETUP //////////////////////////////////////
@@ -126,16 +155,16 @@ void setup(){
 
   // setup serial
   Serial.begin(115200);
-  delay(500);
+  delay(100);
 
   // enable LED_BUILTIN
   pinMode(LED_BUILTIN, OUTPUT);
 
-  // setup wifi
+  // setup wifi, connect to wifi router
   setup_wifi();
   delay(100);
 
-  // display all netwrosk info
+  // display all network info
   show_network_info();
   delay(100);
   
@@ -148,16 +177,16 @@ void setup(){
     Serial.println("Error setting up socket.");
     while (true) {
       digitalWrite(LED_BUILTIN, HIGH);
-      delay(75);
+      delay(100);
       digitalWrite(LED_BUILTIN, LOW);
-      delay(75);
+      delay(100);
     }
   }
-  // else, turn on solid LED
+  // else, turn on solid LED to indicate successful socket setup
   else {
     Serial.println("Socket setup successful.");
     digitalWrite(LED_BUILTIN, HIGH);
-    delay(1000);
+    delay(100);
   }
   
 }
@@ -166,23 +195,67 @@ void setup(){
 
 void loop(){
     
-    // read message from server
-    t1 = micros();
-    ssize_t bytes_read = read(client_fd, buffer, 100);
-    buffer[bytes_read] = '\0'; // null terminate the string
-    String message = String(buffer);
-    t2 = micros();
-
-    Serial.print(t2-t1);
-    Serial.print("us, ");
-    Serial.println(message); 
-
-    // if (client.available()) {
-    //     String message = client.readString(); // read the incoming data as a string
-    //     Serial.println(message); // print the received message
-    //     Serial.println();
-    // } 
+    time1 = micros(); // start timer
     
+    // Read the data into the buffer
+    bytes_read = read(client_fd, recvBuffer, sizeof(recvBuffer));
+
+    // Unpack the received byte stream into floats
+    memcpy(&recv_num1, &recvBuffer[0 * sizeof(float)], sizeof(float));
+    memcpy(&recv_num2, &recvBuffer[1 * sizeof(float)], sizeof(float));
+    memcpy(&recv_num3, &recvBuffer[2 * sizeof(float)], sizeof(float));
+    memcpy(&recv_num4, &recvBuffer[3 * sizeof(float)], sizeof(float));
+
+    // Use received data as needed
+    Serial.print("Received floats: (");
+    Serial.print(recv_num1,5);
+    Serial.print(", ");
+    Serial.print(recv_num2,5);
+    Serial.print(", ");
+    Serial.print(recv_num3,5);
+    Serial.print(", ");
+    Serial.print(recv_num4,5);
+    Serial.println(")");
+
+    delay(1); // small delay to not corrupt data
+
+    // Prepare the data to send to the server (floats)
+    send_num1 = sine_wave();
+    send_num2 = 245.718281828459045;
+    send_num3 = 000000.0000000;
+    send_num4 = -31654564; 
+    dataToSend[0] = send_num1;
+    dataToSend[1] = send_num2;
+    dataToSend[2] = send_num3;
+    dataToSend[3] = send_num4;
+
+    // Copy the float data into the send buffer
+    for (int i = 0; i < 4; ++i) {
+        memcpy(&sendBuffer[i * sizeof(float)], &dataToSend[i], sizeof(float));
+    }
+
+    // Send the data back to the server
+    write(client_fd, sendBuffer, sizeof(sendBuffer));
+
+    time2 = micros(); // stop timer
+
+    // measure communcaiton frequency perfromance
+    t_elapsed = (time2-time1) * 0.001;   // [us]
+    t_remaining = T*1000.0 - t_elapsed;  // [us]
+
+    // delay to achieve desired frequency
+    if (t_remaining > 0) {
+      delay(t_remaining); 
+    }
+    // small delay to not corrupt data
+    else {
+      delay(1);            
+    }
+
+    // print frequency
+    time2 = micros(); // stop timer
+    Serial.print("Freq. [hz]]: ");
+    Serial.println(1.0/(time2-time1)*1000000.0);
 }
 
 
