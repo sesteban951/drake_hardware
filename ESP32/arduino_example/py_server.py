@@ -11,18 +11,29 @@ def sine_wave():
     t = time.time()
     f = 1.0
     x = 500.0 * np.sin(2 * np.pi * f * t)
+    
+    # clip to get square wave
+    if x > 0:
+        x = 1
+    else:
+        x = 0
+
     return  x
 
 # server program to communicate with a client over the same wifi network
 def server_program():
 
     # send and receive variables
-    send_num_floats = 4
+    send_num_floats = 8
     send_f_str = 'f' * send_num_floats # number of f's is number of floats
     send_num1 = 3654.1415926
     send_num2 = -245.718281828459045
     send_num3 = 000000.0000000
     send_num4 = 31654564
+    send_num5 = 3654.1415926
+    send_num6 = -245.718281828459045
+    send_num7 = 000000.0000000
+    send_num8 = 31654564
 
     recv_num_floats = 4
     recv_f_str= 'f' * recv_num_floats
@@ -57,18 +68,19 @@ def server_program():
             time1 = time.time() # start timer
 
             # send message to the client
-            msg_to_client = struct.pack(send_f_str, sine_wave(), send_num2, send_num3, send_num4)
+            x = sine_wave()
+            msg_to_client = struct.pack(send_f_str, x, send_num2, send_num3, send_num4,send_num5, send_num6, send_num7, send_num8)
             conn.send(msg_to_client)
 
             # receive message from client
             msg_from_client = conn.recv(recv_num_floats * 4) # each float is 4 bytes
             recvd_floats = struct.unpack(recv_f_str, msg_from_client)
-            print("Recevied Floats: ", recvd_floats)
+            # print("Recevied Floats: ", recvd_floats)
 
             time2 = time.time() # end timer
 
             # print frequency
-            print("Freq. [hz]: {:.2f}".format(1 / (time2 - time1)))
+            print("Freq. [hz]: {:.2f}, {}".format(1 / (time2 - time1), x))
 
     # soft shutdown if keyboard interrupt 
     except KeyboardInterrupt:
