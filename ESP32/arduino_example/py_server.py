@@ -1,24 +1,43 @@
 # example of a python server that communicates with a C++ client
-# can u
 
 import socket # to use socket prgramming
 import struct # to use structs  when sending data
 import time   # to watch the communication frequency
 import numpy as np
 
+import random
+
 # arbitrary function to generate data
 def sine_wave():
     t = time.time()
     f = 1.0
-    x = 500.0 * np.sin(2 * np.pi * f * t)
+    x = 10.0 * np.sin(2 * np.pi * f * t)
     
-    # clip to get square wave
-    if x > 0:
-        x = 1
-    else:
-        x = 0
+    # # clip to get square wave
+    # if x > 0:
+    #     x = 1
+    # else:
+    #     x = 0
 
     return  x
+
+def generate_pos():
+    px = random.random()-0.5
+    py = random.random()-0.5
+    pz = random.random()-0.5
+    pos = np.array([px, py, pz])
+
+    return px, py, pz
+
+def generate_quat():
+    qw = random.random()-0.5
+    qx = random.random()-0.5
+    qy = random.random()-0.5
+    qz = random.random()-0.5
+    quat = np.array([qw,qx,qy,qz])
+    quat = quat / np.linalg.norm(quat)
+    
+    return quat  
 
 # server program to communicate with a client over the same wifi network
 def server_program():
@@ -69,7 +88,12 @@ def server_program():
 
             # send message to the client
             x = sine_wave()
-            msg_to_client = struct.pack(send_f_str, x, send_num2, send_num3, send_num4,send_num5, send_num6, send_num7, send_num8)
+            # p = generate_pos()
+            p = [send_num1, send_num2, send_num3]
+            # q = generate_quat()
+            q = [sine_wave(), 3.14, -10, 35.0]
+            # msg_to_client = struct.pack(send_f_str, x, send_num2, send_num3, send_num4,send_num5, send_num6, send_num7, send_num8)
+            msg_to_client = struct.pack(send_f_str, x, p[0], p[1], p[2], q[0], q[1], q[2], q[3])
             conn.send(msg_to_client)
 
             # receive message from client
