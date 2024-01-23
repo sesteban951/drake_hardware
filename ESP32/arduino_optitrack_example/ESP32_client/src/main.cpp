@@ -11,11 +11,11 @@ Notes:
   ssid: WIFI router name
   password: WIFI router password
   pc_inet: IP address of the server (laptop) to connect to
-           use "ifconfig" to get wlp inet addr on server from laptop (must do this)
+           use "ifconfig" (linux) or "ipconfig" (windows) to get wlp inet addr on server from laptop (must do this)
 
-  Zero, ensure that byte sizes are agreed upon from server and client (i.e, adjust container sizes below)
-  First, run accopanying py_server.py script on server (laptop) to receive data from ESP32
-  Second, run this script on ESP32 to send and receive from server (laptop)
+  1) ensure that byte sizes are agreed upon from server and client (i.e, adjust container sizes below)
+  2) run accopanying py_server.py script on server (laptop)
+  3) run this script on ESP32 to send and receive from server (laptop)
 
 By Sergio Esteban (sesteban@caltech.edu)
 */ 
@@ -41,23 +41,23 @@ const char* password = "amberlab";
 const char* pc_inet = "192.168.1.4"; // use "ifconfig" to get wlp inet addr on server from laptop
 
 // SOCKET server information
-#define PORT 8080
+#define PORT 8081
 int client_fd;   // socket file descriptor, an integer (like a file handle)
 int status;      // for connection error checking
 struct sockaddr_in serv_addr;
 
 // Receiving message containers
-const int recv_num_floats = 8;                    // change size as needed, each float is 4 bytes
+const int recv_num_floats = 9;                    // change size as needed, each float is 4 bytes
 char recvBuffer[sizeof(float) * recv_num_floats]; // buffer for receviing data
 ssize_t bytes_read;                               // for meausring received packet size
-float num, x, y, z;        // containers for unpacked floats
-float qw, qx, qy, qz;      // containers for unpacked floats
+float escR, escL;     // ESC constainers
+float x, y, z;        // position containers
+float qw, qx, qy, qz; // quaternion containers
 
 // Sending message containers
-const int send_num_floats = 4;                    // change size as needed, each float is 4 bytes
+const int send_num_floats = 6;                    // change size as needed, each float is 4 bytes
 float dataToSend[send_num_floats];                // change size as needed
 char sendBuffer[sizeof(float) * send_num_floats]; // buffer for sending data
-float send_num1, send_num2, send_num3, send_num4; // containers for to pack flaots
 
 // TIMING variables
 double time1, time2;           // to measure time using internal ESP32 clock
@@ -139,11 +139,11 @@ int setup_socket(){
 }
 
 // arbitrary to generate data
-float sine_wave(){
-  double t, f, x;
+float sine_wave(float phi){
+  float t, f, x;
   t = millis()/1000.0;
   f = 1.0;
-  x = 500.0 * sin(2 * M_PI * f*  t);
+  x = 500.0 * sin(2 * M_PI * f*  t + phi);
   return x;
 }
 
@@ -199,18 +199,21 @@ void loop(){
     bytes_read = read(client_fd, recvBuffer, sizeof(recvBuffer));
 
     // Unpack the received byte stream into floats
-    memcpy(&num, &recvBuffer[0 * sizeof(float)], sizeof(float));
-    memcpy(&x,   &recvBuffer[1 * sizeof(float)], sizeof(float));
-    memcpy(&y,   &recvBuffer[2 * sizeof(float)], sizeof(float));
-    memcpy(&z,   &recvBuffer[3 * sizeof(float)], sizeof(float));
-    memcpy(&qw,  &recvBuffer[4 * sizeof(float)], sizeof(float));
-    memcpy(&qx,  &recvBuffer[5 * sizeof(float)], sizeof(float));
-    memcpy(&qy,  &recvBuffer[6 * sizeof(float)], sizeof(float));
-    memcpy(&qz,  &recvBuffer[7 * sizeof(float)], sizeof(float));
+    memcpy(&escR, &recvBuffer[0 * sizeof(float)], sizeof(float));
+    memcpy(&escL, &recvBuffer[1 * sizeof(float)], sizeof(float));
+    memcpy(&x,    &recvBuffer[2 * sizeof(float)], sizeof(float));
+    memcpy(&y,    &recvBuffer[3 * sizeof(float)], sizeof(float));
+    memcpy(&z,    &recvBuffer[4 * sizeof(float)], sizeof(float));
+    memcpy(&qw,   &recvBuffer[5 * sizeof(float)], sizeof(float));
+    memcpy(&qx,   &recvBuffer[6 * sizeof(float)], sizeof(float));
+    memcpy(&qy,   &recvBuffer[7 * sizeof(float)], sizeof(float));
+    memcpy(&qz,   &recvBuffer[8 * sizeof(float)], sizeof(float));
 
     // Use received data as needed
     Serial.print("Received floats: (");
-    Serial.print(num,5);
+    Serial.print(escR,5);
+    Serial.print(", ");
+    Serial.print(escL,5);
     Serial.print(", ");
     Serial.print(x ,5);
     Serial.print(", ");
@@ -229,18 +232,16 @@ void loop(){
 
     delay(1); // small delay to not corrupt data
 
-    // Prepare the data to send to the server (floats)
-    send_num1 = sine_wave();
-    send_num2 = 245.718281828459045;
-    send_num3 = 000000.0000000;
-    send_num4 = -31654564; 
-    dataToSend[0] = send_num1;
-    dataToSend[1] = send_num2;
-    dataToSend[2] = send_num3;
-    dataToSend[3] = send_num4;
+    // Data to send to the server (floats), this should be the joints
+    dataToSend[0] = sine_wave(1.407*0);
+    dataToSend[1] = sine_wave(1.407*1);
+    dataToSend[2] = sine_wave(1.407*2);
+    dataToSend[3] = sine_wave(1.407*3);
+    dataToSend[4] = sine_wave(1.407*4);
+    dataToSend[5] = sine_wave(1.407*5);
 
     // Copy the float data into the send buffer
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < send_num_floats; ++i) {
         memcpy(&sendBuffer[i * sizeof(float)], &dataToSend[i], sizeof(float));
     }
 
@@ -249,22 +250,16 @@ void loop(){
 
     time2 = micros(); // stop timer
 
-    // measure communcaiton frequency perfromance
-    t_elapsed = (time2-time1) * 0.001;   // [us]
-    t_remaining = T*1000.0 - t_elapsed;  // [us]
+    // measure communication frequency perfromance
+    t_elapsed = (time2-time1) * 0.001;   // [ms]
+    t_remaining = T*1000.0 - t_elapsed;  // [ms]
 
-    // delay to achieve desired frequency
-    if (t_remaining > 0) {
-      delay(t_remaining); 
-    }
-    // small delay to not corrupt data
-    else {
-      delay(1);            
-    }
+    // delay to achieve desired frequency or small delay to not corrupt data
+    (t_remaining > 0) ? delay(t_remaining) : delay(1);
 
     // print frequency
     time2 = micros(); // stop timer
-    Serial.print("Freq. [hz]]: ");
+    Serial.print("Freq. [hz]: ");
     Serial.println(1.0/(time2-time1)*1000000.0);
 }
 
