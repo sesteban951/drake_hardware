@@ -7,10 +7,14 @@
 ##
 
 import rospy
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, String
 
 from pydrake.all import LeafSystem, Simulator, BasicVector, DiagramBuilder
 
+# TODO: Fix the following
+#       Cannot keyboard interrupt to stop the program
+#       I think ROS can't keep up with the rate of the drake system
+#       When you print the latest message from ROS, it shows the same value several times in a row
 
 class RosSubscriber(LeafSystem):
     """
@@ -21,7 +25,7 @@ class RosSubscriber(LeafSystem):
 
         # Declare a ROS subscriber
         topic = "/ros_to_drake"
-        self.ros_subscriber = rospy.Subscriber(topic, Float64, self.callback)
+        self.ros_subscriber = rospy.Subscriber(topic, String, self.callback)
 
         # Store the latest message from ROS
         self.latest_message = None
@@ -31,7 +35,7 @@ class RosSubscriber(LeafSystem):
         # just print out the latest message from ROS. In practice this would be
         # replaced with output ports or something more interesting. 
         self.DeclarePeriodicPublishEvent(
-            period_sec=0.1,
+            period_sec=0.005,
             offset_sec=0.0,
             publish=self.PrintMessage)
 
@@ -50,7 +54,6 @@ class RosSubscriber(LeafSystem):
         """
         self.latest_message = msg.data
 
-
 if __name__=="__main__":
     # Set up the ROS node
     rospy.init_node("drake_subscriber")
@@ -64,4 +67,4 @@ if __name__=="__main__":
     simulator = Simulator(diagram)
     simulator.set_target_realtime_rate(1.0)
     simulator.Initialize()
-    simulator.AdvanceTo(10.0)
+    simulator.AdvanceTo(40.0)

@@ -7,10 +7,14 @@
 ##
 
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import Float64, String
 
 from pydrake.all import LeafSystem, Simulator, BasicVector, DiagramBuilder
 
+import time
+
+# TODO: Fix the following
+#       Cannot keyboard interrupt to stop the program
 
 class RosPublisher(LeafSystem):
     """
@@ -25,17 +29,23 @@ class RosPublisher(LeafSystem):
 
         # Declare a Drake publishing event that runs at 10 Hz
         self.DeclarePeriodicPublishEvent(
-            period_sec=0.1,
+            period_sec=0.005,
             offset_sec=0.0,
             publish=self.Publish)
+        
+        self.t0 = time.time()
+        self.c = 0
 
     def Publish(self, context):
         """
         Publishes a message to the ROS topic.
         """
         msg = f"The current Drake time is: {context.get_time()}" 
+        self.c = self.c +1
+        print("Count:               ", self.c)
+        print("Time created object: ", time.time() -self.t0)
+        print("Drake context time:  ", context.get_time())
         self.ros_publisher.publish(msg)
-
 
 if __name__=="__main__":
     # Set up the ROS node
@@ -50,4 +60,4 @@ if __name__=="__main__":
     simulator = Simulator(diagram)
     simulator.set_target_realtime_rate(1.0)
     simulator.Initialize()
-    simulator.AdvanceTo(10.0)
+    simulator.AdvanceTo(30.0)
