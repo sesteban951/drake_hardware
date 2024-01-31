@@ -1,0 +1,11 @@
+A simple demo interface between ROS 1 and Drake.
+
+Usage:
+    - start ROS `$ roscore`
+    - Test publishing a message from a Drake system to ROS
+        - `$ ./drake_publisher.py` sends a `String` message with the current time.
+        - You should be able to view it with `$ rostopic echo /ros_to_drake`
+    - Test subscribing to a ROS message from inside a Drake system
+        - run `$ ./ros_publisher.py` to publish to `/ros_to_drake`
+        - run `$ ./drake_subscriber.py` to subscribe to that topic
+
