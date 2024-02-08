@@ -24,7 +24,7 @@ class RosSubscriber(LeafSystem):
         LeafSystem.__init__(self)
 
         # Declare a ROS subscriber
-        topic = "/ros_to_drake"
+        topic = "/x_hat"
         self.ros_subscriber = rospy.Subscriber(topic, String, self.callback)
 
         # Store the latest message from ROS
@@ -35,7 +35,7 @@ class RosSubscriber(LeafSystem):
         # just print out the latest message from ROS. In practice this would be
         # replaced with output ports or something more interesting. 
         self.DeclarePeriodicPublishEvent(
-            period_sec=0.005,
+            period_sec=0.01,
             offset_sec=0.0,
             publish=self.PrintMessage)
 

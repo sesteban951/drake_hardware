@@ -8,19 +8,24 @@
 ##
 
 import rospy
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64MultiArray
 
 if __name__=="__main__":
-    topic = "/ros_to_drake"
 
+    # message to publish
+    x_hat_msg = Float64MultiArray()
+    
+    # topic name to publish to
+    topic = "/x_hat"
+
+    # initialize the node
     rospy.init_node("ros_publisher")
-    pub = rospy.Publisher(topic, Float64, queue_size=10)
+    pub = rospy.Publisher(topic, Float64MultiArray, queue_size=10)
 
     rate = rospy.Rate(100)
     start_time = rospy.get_time()
 
     while not rospy.is_shutdown():
-        msg = Float64()
-        msg.data = rospy.get_time() - start_time
-        pub.publish(msg)
+        x_hat_msg.data = [rospy.get_time() - start_time, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+        pub.publish(x_hat_msg)
         rate.sleep()

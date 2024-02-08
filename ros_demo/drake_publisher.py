@@ -24,12 +24,12 @@ class RosPublisher(LeafSystem):
         LeafSystem.__init__(self)
 
         # Declare a ROS publisher
-        topic = "/ros_to_drake"
+        topic = "/mpc_trajectory"
         self.ros_publisher = rospy.Publisher(topic, String, queue_size=10)
 
         # Declare a Drake publishing event that runs at 10 Hz
         self.DeclarePeriodicPublishEvent(
-            period_sec=0.005,
+            period_sec=0.01,
             offset_sec=0.0,
             publish=self.Publish)
         
