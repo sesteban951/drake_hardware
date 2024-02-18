@@ -1,3 +1,12 @@
+/*
+    Interpolator.h
+
+    Simple class to interpolate data using splines.
+    In particular, a 3rd order spline is fitted to the provided time and data vectors.
+
+    by: Sergio Esteban (sesteban@caltech.edu)
+*/
+
 // header file for the library
 #include "../inc/Interpolator.h"
 
@@ -28,9 +37,10 @@ VectorXd Interpolator::rescale_time() {
     VectorXd t_rescaled;
     t_rescaled.resize(t.size());
     
-    // minimal and maximal time
+    // minimal and maximal time, derivative scaling
     t_min = t.minCoeff();
     t_max = t.maxCoeff();
+    scale = 1 / (t_max - t_min);
     
     // go through each element of the time array and rescale
     for (int k = 0; k < t.size(); k++) {
@@ -43,8 +53,8 @@ VectorXd Interpolator::rescale_time() {
 // do a curve fit for a dimension of the data
 Curve Interpolator::fit_curve(VectorXd t_rescaled, VectorXd data_var) {
     
-    auto knots = t_rescaled;
-    Curve curve = CurveFit::Interpolate(data_var.transpose(), 3, knots);
+    VectorXd knots = t_rescaled;
+    Curve curve = CurveFit::Interpolate(data_var.transpose(), curve_order, knots);
 
     return curve;
 }
@@ -69,74 +79,121 @@ void Interpolator::update_curve(VectorXd t_, std::vector<VectorXd> data_) {
     curve = spline;
 }
 
+// check if the time is within the range
+double Interpolator::check_time(double time) {
+ 
+    // warnings and saturating
+    if (warnings || saturate) {
+
+        // print warnings
+        if (warnings) {
+            if (time < t_min || time > t_max) {
+                std::stringstream error_msg;
+                error_msg << "[WARNING] Time (" << time << ") is not in time range. Min: " << t_min << ", Max: " << t_max  << endl;
+                cout << error_msg.str().c_str();
+            }
+        }
+
+        // saturation considerations
+        if (saturate) {
+
+            // allow for zero to be saturated
+            if (saturate_zero) {
+                time = time;
+            }
+
+            // saturate to nearest value
+            else {
+                if (time < t_min) {time = t_min;}
+                if (time > t_max) {time = t_max;}
+            }
+        }
+    }
+
+    return time;
+}
+
 // Evaluate the curve at a given time
-Eigen::VectorXd Interpolator::get_value(double t) {
+Eigen::VectorXd Interpolator::get_value(double time) {
+
+    // check if the time is within the range    
+    time = check_time(time);
+
+    double time_ = (time - t_min) / (t_max - t_min);
     
-    // assert that the time is within the range
-    assert((t >= t_min) && (t <= t_max) && "Time is not within the time range");
-
-    double t_ = (t - t_min) / (t_max - t_min);
-
     // container for the values
     Eigen::VectorXd value;
     value.resize(data_dim);
 
     // go through each dimension of the data and evaluate the curve
     for (int i = 0; i < data_dim; i++) {
-        value(i) = curve[i].derivatives(t_, 0)(0);
+
+        if (saturate && saturate_zero) {
+            if (time_ < 0 || time_ > 1) {value(i) = 0;}
+            else {value(i) = curve[i].derivatives(time_, 0)(0);}
+        }
+        else {
+            value(i) = curve[i].derivatives(time_, 0)(0) ;
+        }
     }
 
     return value;
 }
 
 // Evaluate the first derivative of the curve at a given time
-Eigen::VectorXd Interpolator::get_derivative(double t) {
+Eigen::VectorXd Interpolator::get_derivative(double time) {
     
-    // assert that the time is within the range
-    assert((t >= t_min) && (t <= t_max) && "Time is not within time range");
+    // check if the time is within the range    
+    time = check_time(time);
 
-    double t_ = (t - t_min) / (t_max - t_min);
+    double time_ = (time - t_min) / (t_max - t_min);
 
     // container for the values
     Eigen::VectorXd value;
     value.resize(data_dim);
 
-    double data_min, data_max, scale;
-
     // go through each dimension of the data and evaluate the curve
     for (int i = 0; i < data_dim; i++) {
-        data_min = data[i].minCoeff();
-        data_max = data[i].maxCoeff();
-        scale = 1 / (data_max - data_min);
-        // scale = 1;
-        value(i) = curve[i].derivatives(t_, 1)(1) * scale;
+
+        if (saturate && saturate_zero) {
+            if (time_ < 0 || time_ > 1) {value(i) = 0;}
+            else {value(i) = curve[i].derivatives(time_, 1)(1) * scale;}
+        }
+        else {
+            value(i) = curve[i].derivatives(time_, 1)(1) * scale;
+        }
     }
 
     return value;
 }
 
 // Evaluate the second derivative of the curve at a given time
-Eigen::VectorXd Interpolator::get_second_derivative(double t) {
+Eigen::VectorXd Interpolator::get_second_derivative(double time) {
     
-    // assert that the time is within the range
-    assert((t >= t_min) && (t <= t_max) && "Time is not within the time range");
+    // check if the time is within the range    
+    time = check_time(time);
 
-    double t_ = (t - t_min) / (t_max - t_min);
+    double time_ = (time - t_min) / (t_max - t_min);
 
     // container for the values
     Eigen::VectorXd value;
     value.resize(data_dim);
 
-    double data_min, data_max, scale;
-
     // go through each dimension of the data and evaluate the curve
     for (int i = 0; i < data_dim; i++) {
-        data_min = data[i].minCoeff();
-        data_max = data[i].maxCoeff();
-        scale = 1 / (data_max - data_min);
-        // scale = 1;
-        value(i) = curve[i].derivatives(t_, 2)(2) * scale;
+
+        if (saturate && saturate_zero) {
+            if (time_ < 0 || time_ > 1) {value(i) = 0;}
+            else {value(i) = curve[i].derivatives(time_, 2)(2) * scale * scale;}
+        }
+        else {
+            value(i) = curve[i].derivatives(time_, 2)(2) * scale * scale;
+        }
     }
 
     return value;
 }
+
+
+
+

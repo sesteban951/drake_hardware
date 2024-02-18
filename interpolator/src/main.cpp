@@ -7,46 +7,99 @@ using namespace std;
 
 int main() {
 
-    int spline_dimension = 1;
-    int spline_order = 3;
-
-    Interpolator interp;
+    bool saturate = true;
+    bool saturate_zero = false;
+    bool warnings = false;
+    Interpolator interp(saturate, saturate_zero, warnings);
     
     VectorXd t(9), q(9), v(9);
     std::vector<Eigen::VectorXd> data;
 
-    t << 0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0;
-    q << 1,   2,  -2,   3,   4,   0,   1,  -1,   2;
-    // v << 0,   .25,   1,  2.25,  4,  6.25,  9,  12.25,   16; 
-    v = t.array().square();
+    // raw data
+    t << -2, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0;
+    q << -1, 1, 0, 5, 3, 6, -7, 8, 9;
+    v << 0, 1, 2, 3, 4, 5, 6, 7, 8;
+
+    data.push_back(q);
+    data.push_back(v);    
+
+    interp.update_curve(t, data);
+  
+    // create linsapce to save data [0,4]
+    VectorXd t_save = VectorXd::LinSpaced(200, t.minCoeff()-1, t.maxCoeff()+1);
+
+    // save the data via fstream
+    ofstream file;
+
+    // save the original data
+    file.open("../data/data_original.txt");
+    for (int i = 0; i < t.size(); i++) {
+        file << t[i] << " " << q[i] << " " << v[i] << "\n";
+    }
+    file.close();
+
+    // save value
+    file.open("../data/data.txt");
+    for (int i = 0; i < t_save.size(); i++) {
+        VectorXd val = interp.get_value(t_save[i]);
+        file << t_save[i] << " " << val[0] << " " << val[1] << "\n";
+    }
+    file.close();
+
+    // save first derivative
+    file.open("../data/data_derivative.txt");
+    for (int i = 0; i < t_save.size(); i++) {
+        VectorXd val = interp.get_derivative(t_save[i]);
+        file << t_save[i] << " " << val[0] << " " << val[1] << "\n";
+    }
+    file.close();
+
+    // save second derivative
+    file.open("../data/data_second_derivative.txt");
+    for (int i = 0; i < t_save.size(); i++) {
+        VectorXd val = interp.get_second_derivative(t_save[i]);
+        file << t_save[i] << " " << val[0] << " " << val[1] << "\n";
+    }
+    file.close();
+
+    // test the square and cube functions
+    q = t.array().square();
+    v = t.array().cube();
+    data.clear();
     data.push_back(q);
     data.push_back(v);
 
     interp.update_curve(t, data);
 
-    // simply evaluate the spline at a given time
-    VectorXd vec;
+    // savethe original data
+    file.open("../data/data_original2.txt");
     for (int i = 0; i < t.size(); i++) {
-        double t_ = t[i];
-        vec = interp.get_value(t_);
-        cout << "t: " << t_ << " q: " << vec[0] << " v: " << vec[1] << endl;
+        file << t[i] << " " << q[i] << " " << v[i] << "\n";
     }
-    cout << "-------------------\n";
+    file.close();
 
-    // evaluate the first derivative of the spline at a given time
-    for (int i = 0; i < t.size(); i++) {
-        double t_ = t[i];
-        vec = interp.get_derivative(t_);
-        cout << "t: " << t_ << " q': " << vec[0] << " v': " << vec[1] << endl;
+    // save value
+    file.open("../data/data2.txt");
+    for (int i = 0; i < t_save.size(); i++) {
+        VectorXd val = interp.get_value(t_save[i]);
+        file << t_save[i] << " " << val[0] << " " << val[1] << "\n";
     }
+    file.close();
 
-    cout << "-------------------\n";
-
-    // evaluate the second derivative of the spline at a given time
-    for (int i = 0; i < t.size(); i++) {
-        double t_ = t[i];
-        vec = interp.get_second_derivative(t_);
-        cout << "t: " << t_ << " q'': " << vec[0] << " v'': " << vec[1] << endl;
+    // save first derivative
+    file.open("../data/data_derivative2.txt");
+    for (int i = 0; i < t_save.size(); i++) {
+        VectorXd val = interp.get_derivative(t_save[i]);
+        file << t_save[i] << " " << val[0] << " " << val[1] << "\n";
     }
+    file.close();
+
+    // save second derivative
+    file.open("../data/data_second_derivative2.txt");
+    for (int i = 0; i < t_save.size(); i++) {
+        VectorXd val = interp.get_second_derivative(t_save[i]);
+        file << t_save[i] << " " << val[0] << " " << val[1] << "\n";
+    }
+    file.close();
 
 }
