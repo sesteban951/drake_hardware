@@ -1,24 +1,24 @@
 /* 
-PlatformIO env params:
-  [env:teensy]
-  platform = teensy
-  board = teensy41
-  framework = arduino
-  monitor_speed = 115200
+  PlatformIO env params:
+    [env:teensy]
+    platform = teensy
+    board = teensy41
+    framework = arduino
+    monitor_speed = 115200
 
-Teensy USB Communication Example: send and receive multiple floats over Serial
+  Teensy USB Communication Example: send and receive multiple floats over Serial
 
-WARNING: for debugging, DO NOT use Serial.print() or Serial.println()
-         as it will interfere with the Serial traffic.
+  WARNING: for debugging, DO NOT use Serial.print() or Serial.println()
+          as it will interfere with the Serial traffic.
 
-Notes: 
-  1) Ensure that the baud rate is set to 115200
-  2) Make sure send and receive message sizes should be agreed upon.
-     before running the python and arduino code.
-  3) Make sure send/receive frequency is also agreed upon.
-  3) Run the accompanying python code to receive and send data
+  Notes: 
+    1) Ensure that the baud rate is set to 115200
+    2) Make sure send and receive message sizes are agreed upon.
+      before running the python and arduino code.
+    3) Make sure send/receive frequency is also agreed upon.
+    3) Run the accompanying python code to receive and send data
 
-By Sergio Esteban (sesteban@caltech.edu)
+  By Sergio Esteban (sesteban@caltech.edu)
 */
 
 ////////////////////////////////////// LIBRARIES //////////////////////////////////////

@@ -2,15 +2,15 @@
     Serial node class to communicate with a Teensy 4.1
     over a USB serial connection. 
 
-    0. Makre sure that the packet sizes are agreed upon between the Teensy and the host PC.
-    1. After plugging USB cable to your laptop and to the Teensy, looks for the port name
+    0. Make sure that the packet sizes are agreed upon between the Teensy and the host PC.
+    1. After plugging USB cable to your laptop and to the Teensy, look for the port name
        in the Arduino IDE.
     2. Set buad rate to 115200 in the Arduino IDE.
-    3. Run theaccopanying Arduino code. 
+    3. Run the accompanying Arduino code. 
 
     Notes:
         - The Teensy must be connected to the computer via USB cable. 
-        - You can still have successful connection when the USB cable is plugged in frpm the laptop
+        - You can still have successful connection when the USB cable is plugged in from the laptop
           side but not from the Teensy side.
         - WARNING: You may run into issues if you try to observe UART traffic with Serial Monitor.
 
