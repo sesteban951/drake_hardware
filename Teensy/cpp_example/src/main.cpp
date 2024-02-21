@@ -18,7 +18,24 @@
 */
 
 #include "../inc/SerialNode.h"
+#include <cmath>
 
+// to get the current time in milliseconds
+int64_t get_time_millis() {
+    auto now = std::chrono::system_clock::now();
+    auto epoch = now.time_since_epoch();
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
+    return milliseconds.count();
+}
+
+// sine wave generator
+float sineWaveGenerator(float t) {
+    double A = 1.0;
+    double f = 0.5;
+    return A * std::sin(2 * 3.14159 * f * t);
+}
+
+// main communication loop
 int main(){
     
     // set the port and baud rate
@@ -41,29 +58,58 @@ int main(){
         sendData[i] = i * 3.14159;
     }
 
-    // small delay before beginning
+    // for controlling the loop rate
+    int64_t t0 = 0; 
+    int64_t t1 = 0;
+    int64_t T = 10; // 10  [ms]
+    float s_val;
+    double period, frequency;
+    long k = 0;
+
+    // small delay before beginning the communication
     std::this_thread::sleep_for(std::chrono::microseconds(1000));
 
     // main loop write and read
     while (true) {
-        // write data to the Teensy
-        s.writeData(sendData);
 
-        // small delay to not corrupt data
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+        t1 = get_time_millis();
 
-        // read data from the Teensy
-        recvData = s.readData();
+        // if period has passed, then write and read data
+        if (t1 - t0 >= T) {
 
-        // print the received data
-        std::cout << "Received data: ";
-        for (int i = 0; i < recvSize; i++) {
-            std::cout << recvData[i] << " ";
+            k++;
+            float t_sine = k * 0.01;
+            s_val = sineWaveGenerator(t_sine);
+            std::cout << "sine wave: " << s_val << std::endl;
+
+            // Print the frequency in Hz
+            double period = (t1 - t0) / 1000.0;
+            double frequency = 1.0 / period;
+            std::cout << "Hz: " << frequency << std::endl;
+         
+            t0 = get_time_millis();
+
+            // write data to the Teensy
+            // sendData[0] = s_val;
+            sendData[0] = 0.5* s_val;
+            sendData[1] = 1.0 * s_val;
+            sendData[2] = 2.0* s_val;
+            s.writeData(sendData);
+
+            // small delay to not corrupt data
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
+
+            // read data from the Teensy
+            recvData = s.readData();
+
+            // print the received data
+            std::cout << "Received data: ";
+            for (int i = 0; i < recvSize; i++) {
+                std::cout << recvData[i] << " ";
+            }
+            std::cout << std::endl;
+
         }
-        std::cout << std::endl;
-
-        // small delay to not corrupt data
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
     
     return 0;
