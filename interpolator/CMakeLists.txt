@@ -11,4 +11,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include_directories($ENV{EIGEN_DIR})
 
 # executables
-add_executable(s src/main.cpp src/Interpolator.cpp)
+add_executable(ss src/main.cpp src/Interpolator.cpp)
+add_executable(s src/main_linear.cpp src/LinearInterpolator.cpp)

@@ -32,7 +32,7 @@ class Interpolator {
         ~Interpolator() {};
 
         // containers for the data
-        Eigen::VectorXd t;                   // time vector (unscacled)
+        Eigen::VectorXd t;                   // time vector (unscaled)
         std::vector<Eigen::VectorXd> data;   // std vector if data eigen vectors
 
         // class options
@@ -61,13 +61,13 @@ class Interpolator {
         double t_max;
         double scale;
 
-        // container for the fitted curve, vecotr of curves for each dimension of the data
+        // container for the fitted curve, vector of curves for each dimension of the data
         std::vector<Curve> curve;
 
         // methods to create the spline
-        void set_data(Eigen::VectorXd t_, std::vector<Eigen::VectorXd> data_); // set the data (time and data) vectors
-        Eigen::VectorXd rescale_time();                                        // rescale time to [0,1]
-        Curve fit_curve(Eigen::VectorXd t, Eigen::VectorXd data);              // fit a curve
-        double check_time(double time);                                           // check if time is within the range
+        void set_data(Eigen::VectorXd t_, std::vector<Eigen::VectorXd> data_);  // set the data (time and data) vectors
+        Eigen::VectorXd rescale_time();                                         // rescale time to [0,1]
+        Curve fit_curve(Eigen::VectorXd t, Eigen::VectorXd data);               // fit a curve
+        double check_time(double time);                                         // check if time is within the range
 
 };  
