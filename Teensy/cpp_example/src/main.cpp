@@ -104,9 +104,10 @@ int main(){
 
             // print the received data
             std::cout << "Received data: ";
-            for (int i = 0; i < recvSize; i++) {
-                std::cout << recvData[i] << " ";
-            }
+            // for (int i = 0; i < recvSize; i++) {
+            //     std::cout << recvData[i] << " ";
+            // }
+            std::cout << recvData[1] << " " << recvData[7];
             std::cout << std::endl;
 
         }
