@@ -36,9 +36,9 @@ By Sergio Esteban (sesteban@caltech.edu)
 ////////////////////////////////////// VARIABLES //////////////////////////////////////
 
 // WIFI router information, must be modified when you change router or laptop
-// const char* ssid = "NETGEAR46";
-// const char* password = "amberlab";
-// const char* pc_inet = "10.1.1.4"; // use "ifconfig" to get wlp inet addr on server from laptop
+const char* ssid = "NETGEAR46";
+const char* password = "amberlab";
+const char* pc_inet = "10.1.1.4"; // use "ifconfig" to get wlp inet addr on server from laptop
 
 // SOCKET server information
 #define PORT 8080

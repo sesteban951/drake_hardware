@@ -181,6 +181,8 @@ void setup(){
 void loop(){
     
     if (micros() - t0 >= (T * 1E6)) {
+
+      digitalWrite(LED_BUILTIN, HIGH);
     
       t0 = micros();
       
@@ -212,6 +214,8 @@ void loop(){
       Serial.print(", ");
       Serial.print(qz, 4);
       Serial.println(")");
+
+      digitalWrite(LED_BUILTIN, LOW);
     }
 }
 

@@ -43,7 +43,7 @@ def generate_quat():
 def server_program():
 
     # send and receive variables
-    send_num_floats = 8
+    send_num_floats = 4
     send_f_str = 'f' * send_num_floats # number of f's is number of floats
     send_num1 = 3654.1415926
     send_num2 = -245.718281828459045
@@ -92,8 +92,8 @@ def server_program():
             p = [send_num1, send_num2, send_num3]
             # q = generate_quat()
             q = [sine_wave(), 3.14, -10, 35.0]
-            # msg_to_client = struct.pack(send_f_str, x, send_num2, send_num3, send_num4,send_num5, send_num6, send_num7, send_num8)
-            msg_to_client = struct.pack(send_f_str, x, p[0], p[1], p[2], q[0], q[1], q[2], q[3])
+            msg_to_client = struct.pack(send_f_str, x, send_num2, send_num3, send_num4)
+            # msg_to_client = struct.pack(send_f_str, x, p[0], p[1], p[2], q[0], q[1], q[2], q[3])
             conn.send(msg_to_client)
 
             # receive message from client
